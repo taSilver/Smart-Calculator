@@ -25,12 +25,11 @@ class Calculator:
                     raise SyntaxError
             elif all(c in ["+", "-"] for c in item):
                 # if mathematical operator
-                reduced_str = self.eval_op(reduced_str, item)
-                if not reduced_str:
-                    raise SyntaxError
+                reduced_str = self.eval_sub_add(reduced_str, item)
             elif item == "=":
                 # If assignment operator
                 if len(reduced_str) > 1 or "=" in reduced_str:
+                    # check if more than one equals
                     raise ValueError
                 reduced_str.append(item)
             elif item[0].isalpha() or item[0] == "=":
@@ -76,7 +75,14 @@ class Calculator:
                     raise ValueError
         return eq_loc
 
-    def eval_op(self, lst, op):
+    def eval_sub_add(self, lst, op):
+        """
+        Evaluate a given chain of subtraction and addition operators
+        :param lst: The list that previous operators reside in
+        :param op: The operator to currently identify
+        :return: The list of operators with the new addition or subtraction operator added in
+        :raises SyntaxError: If given operator doesn't correctly follow a chain
+        """
         if len(op) > 1:
             for sub_item in op:
                 if lst and not self.is_num(lst[-1]):
@@ -85,7 +91,7 @@ class Calculator:
                     elif sub_item + lst[-1] in ["-+", "+-"]:
                         lst[-1] = "-"
                     else:
-                        return
+                        raise SyntaxError
                 else:
                     lst.append(sub_item)
         else:
@@ -94,6 +100,11 @@ class Calculator:
         return lst
 
     def is_num(self, num):
+        """
+        Utility function to check if given number is an integer
+        :param num: The string to check if is a number
+        :return: boolean true or false for if the string can be converted to a number
+        """
         try:
             int(num)
             return True
@@ -101,13 +112,19 @@ class Calculator:
             return False
 
     def retrieve_var(self, var):
-        try:
-            return vars[var]
-        except KeyError:
-            print("Unknown variable")
-            return
+        """
+        Utility function to attempt to retrieve var from dictionary
+        :param var: The string var to retrieve
+        :return: Value of given var
+        """
+        return self.vars[var]
 
     def compute_list(self, lst):
+        """
+        Process mathematical expression in the form of a list
+        :param lst: The mathematical expression
+        :return: The result of the mathematical expression
+        """
         # operations dictionary
         check_op = {
             "+": lambda x, y: x + y,
@@ -119,42 +136,46 @@ class Calculator:
                 # if single item expression
                 if type(lst[0]) == str:
                     var = self.retrieve_var(lst[0])
-                    if var is not None:
-                        return var
-                    else:
-                        return ""
+                    return var
                 else:
                     return lst[0]
 
-            res = 0
+            res = ""
             while len(lst) > 2:
                 if lst[1] == "=":
-                    vars[lst[0]] = self.compute_list(lst[2:])
-                    res = ""
+                    self.vars[lst[0]] = self.compute_list(lst[2:])
                     break
                 val_1 = lst[0] if type(lst[0]) == int else self.retrieve_var(lst[0])
                 val_2 = lst[2] if type(lst[2]) == int else self.retrieve_var(lst[2])
-                if val_1 is None or val_2 is None:
-                    return ""
 
                 res = check_op[lst[1]](val_1, val_2)
                 lst = [res] + lst[3:]
             return res
 
     def calculate(self, input_str):
-
+        """
+        Main calculator function to calculate string
+        :param input_str: The mathematical string to parse
+        :return: None
+        """
         try:
             reduced_str = self.interpret_equation(input_str)
             res = self.compute_list(reduced_str)
-            print(res)
         except SyntaxError:
             print("Invalid expression")
         except ValueError:
             print("Invalid assignment")
+        except KeyError:
+            print("Unknown variable")
+        else:
+            print(res)
 
 
 class Commands:
     def __init__(self):
+        """
+        Initialize the state of the calculator and map commands to functions
+        """
         self.state = True
         self.command_map = {
             "/exit": self.exit_calc,
@@ -162,20 +183,33 @@ class Commands:
         }
 
     def exit_calc(self):
+        """
+        Exit on next loop
+        :return: Print string to console
+        """
         self.state = False
         print("Bye!")
 
     def help(self):
+        """
+        Help command
+        :return: Print information regarding calculator
+        """
         print("The program calculates the sum, subtraction, multiplication, and division of numbers."
               "Variables can be stored and accessed later if required."
               "Bracketed expressions are supported.")
 
     def parse(self, command):
+        """
+        Parse the given command
+        :param command: String representing the given command
+        :return: Prints either unknown command or information relevant to given command
+        """
         try:
             self.command_map[command]()
         except KeyError:
             print("Unknown command")
-
+    
 
 calc = Calculator()
 command_interpreter = Commands()
